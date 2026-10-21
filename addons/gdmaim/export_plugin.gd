@@ -94,6 +94,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	
 	_godot_files = GodotFiles.new()
 	_autoloads.clear()
+	_class_symbols.clear()
 	_src_obfuscators.clear()
 	_res_obfuscators.clear()
 	
@@ -163,6 +164,11 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	for paths in [scripts, _get_files("res://", ".tscn"), _get_files("res://", ".scn")]:
 		for script_path in paths:
 			_parse_script(script_path)
+	
+	# Keep class names, so get_global_name() and string-based class checks still match
+	if settings.lock_class_names:
+		for class_name_ : String in _class_symbols:
+			_symbols.lock_symbol_name(class_name_)
 	
 	# GDShedor
 	if Engine.has_singleton(&"GDShedor"):

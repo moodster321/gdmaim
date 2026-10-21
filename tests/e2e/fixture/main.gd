@@ -13,6 +13,7 @@ const CHECKS : Array[String] = [
 	"res://checks/init_order.gd",
 	"res://checks/class_identity.gd",
 	"res://checks/script_extends_class.gd",
+	"res://checks/class_cache_consistent.gd",
 	"res://checks/has_method_literal.gd",
 	"res://checks/call_literal.gd",
 	"res://checks/callable_literal.gd",
