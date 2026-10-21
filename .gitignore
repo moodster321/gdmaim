@@ -8,3 +8,5 @@ project.godot
 export_presets.cfg
 test_scripts/
 *.uid
+# Claude Code worktrees (one per workstream phase)
+.claude/worktrees/
