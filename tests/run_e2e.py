@@ -9,6 +9,9 @@ both PCKs headless and judges the fixture's "E2E <id> PASS|FAIL [reason]" lines:
 - the obfuscated build must pass every check except the ids in tests/e2e/xfail.txt, which must
   fail (a listed id that passes is an XPASS error).
 
+The runner also judges RUNNER_CHECKS itself, from the files the obfuscated export leaves in the
+temp project, and counts them with the obfuscated build.
+
 Usage: python tests/run_e2e.py [--keep] [--only <id>]
 
 Godot comes from $GODOT_BIN, else $GODOT_PATH, else `godot` on PATH. E2E_VERBOSE=1 streams
@@ -42,6 +45,11 @@ EXPORT_TIMEOUT = 600
 RUN_TIMEOUT = 120
 TAIL_LINES = 40
 
+# The string lock report must keep the names the fixture reaches by string, and must not keep a
+# name that only exists at runtime (obfuscation_active builds it from two fragments).
+STRING_LOCK_KEPT = ("e2e_literal_method", "e2e_dialogue_target", "e2e_json_target", "e2e_tscn_target")
+STRING_LOCK_RENAMED = ("e2e_hidden_member",)
+
 CHECK_LINE = re.compile(r"^E2E (\S+) (PASS|FAIL)(?: (.*))?$")
 DONE_LINE = re.compile(r"^E2E_DONE (\d+)$")
 
@@ -74,15 +82,18 @@ def run(args: argparse.Namespace) -> int:
     check_ids = sorted(path.stem for path in (FIXTURE / "checks").glob("*.gd"))
     if not check_ids:
         raise HarnessError(f"no checks found in {FIXTURE / 'checks'}")
+    runner_ids = sorted(RUNNER_CHECKS)
     xfail = read_xfail()
-    unknown = sorted(xfail - set(check_ids))
+    unknown = sorted(xfail - set(check_ids) - set(runner_ids))
     if unknown:
         raise HarnessError(f"{XFAIL_FILE.name} lists ids that are not checks: {', '.join(unknown)}")
     judged = check_ids
+    judged_runner = runner_ids
     if args.only:
-        if args.only not in check_ids:
-            raise HarnessError(f"--only {args.only}: no such check (have {', '.join(check_ids)})")
-        judged = [args.only]
+        if args.only not in check_ids + runner_ids:
+            raise HarnessError(f"--only {args.only}: no such check (have {', '.join(check_ids + runner_ids)})")
+        judged = [args.only] if args.only in check_ids else []
+        judged_runner = [args.only] if args.only in runner_ids else []
 
     godot = find_godot()
     tmp = Path(tempfile.mkdtemp(prefix="gdmaim_e2e_"))
@@ -96,6 +107,13 @@ def run(args: argparse.Namespace) -> int:
         for kind, _preset in BUILDS:
             code, lines = run_pack(godot, tmp, kind, pcks[kind])
             counts[kind] = judge(kind, code, lines, check_ids, judged, xfail, failures)
+        passed, xfailed, failed = counts["obfuscated"]
+        for check_id in judged_runner:
+            reason = RUNNER_CHECKS[check_id](tmp)
+            outcome = judge_one("obfuscated", check_id, "FAIL" if reason else "PASS", reason, xfail, failures)
+            passed += outcome == "passed"
+            xfailed += outcome == "xfailed"
+            failed += outcome == "failed"
     finally:
         if args.keep:
             print(f"E2E: kept the temp project at {tmp}")
@@ -104,7 +122,6 @@ def run(args: argparse.Namespace) -> int:
 
     for failure in failures:
         print(failure)
-    passed, xfailed, failed = counts["obfuscated"]
     plain_passed = counts["plain"][0]
     print(f"E2E: {passed} passed, {xfailed} xfail, {failed} failed (obfuscated) | {plain_passed}/{len(judged)} plain")
     return 1 if failures else 0
@@ -194,17 +211,10 @@ def judge(kind: str, code: int | None, lines: list[str], check_ids: list[str], j
             incomplete = True
             continue
         status, reason = results[check_id]
-        if kind == "obfuscated" and check_id in xfail:
-            if status == "FAIL":
-                xfailed += 1
-            else:
-                failures.append(f"{kind}: {check_id} XPASS: it passes now, so remove {check_id} from tests/e2e/xfail.txt")
-                failed += 1
-        elif status == "PASS":
-            passed += 1
-        else:
-            failures.append(f"{kind}: {check_id} FAIL {reason}")
-            failed += 1
+        outcome = judge_one(kind, check_id, status, reason, xfail, failures)
+        passed += outcome == "passed"
+        xfailed += outcome == "xfailed"
+        failed += outcome == "failed"
 
     if done is None:
         failures.append(f"{kind}: the run printed no E2E_DONE line ({exit_text(code)})")
@@ -214,6 +224,43 @@ def judge(kind: str, code: int | None, lines: list[str], check_ids: list[str], j
     if incomplete:
         failures.append(f"{kind}: last {TAIL_LINES} lines of the run log:\n{tail(lines)}")
     return passed, xfailed, failed
+
+
+def judge_one(kind: str, check_id: str, status: str, reason: str, xfail: set[str], failures: list[str]) -> str:
+    """Returns "passed", "xfailed" or "failed", and adds a failed check to `failures`."""
+    if kind == "obfuscated" and check_id in xfail:
+        if status == "FAIL":
+            return "xfailed"
+        failures.append(f"{kind}: {check_id} XPASS: it passes now, so remove {check_id} from tests/e2e/xfail.txt")
+        return "failed"
+    if status == "PASS":
+        return "passed"
+    failures.append(f"{kind}: {check_id} FAIL {reason}")
+    return "failed"
+
+
+def check_string_lock_report(tmp: Path) -> str:
+    """The obfuscated export lists the names it kept because a string mentions them.
+
+    Only the obfuscated export runs GDMaim, so there must be exactly one report.
+    """
+    source_maps = tmp / "addons" / "gdmaim" / "source_maps"
+    reports = sorted(source_maps.glob("*.string_locks.txt"))
+    if len(reports) != 1:
+        return f"expected one *.string_locks.txt in {source_maps}, found {[report.name for report in reports]}"
+    names = set(reports[0].read_text(encoding="utf-8").split())
+    missing = [name for name in STRING_LOCK_KEPT if name not in names]
+    if missing:
+        return f"{reports[0].name} lacks {', '.join(missing)} (it lists {', '.join(sorted(names)) or 'nothing'})"
+    kept = [name for name in STRING_LOCK_RENAMED if name in names]
+    if kept:
+        return f"{reports[0].name} lists {', '.join(kept)}, though no string mentions it"
+    return ""
+
+
+# Checks the runner judges itself, by id. Each takes the temp project and returns "" on pass, or
+# the reason it failed.
+RUNNER_CHECKS = {"string_lock_report": check_string_lock_report}
 
 
 def run_godot(godot: str, args: list[str], *, cwd: Path, timeout: int, label: str, env: dict[str, str] | None = None) -> tuple[int | None, list[str]]:

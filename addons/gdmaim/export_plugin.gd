@@ -170,6 +170,10 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 		for class_name_ : String in _class_symbols:
 			_symbols.lock_symbol_name(class_name_)
 	
+	# Keep every declared name a string mentions, so call/has_method/get/set/connect by name still match
+	if settings.lock_string_referenced_symbols:
+		print("GDMaim - Kept %d names referenced by strings." % _lock_string_referenced_symbols())
+	
 	# GDShedor
 	if Engine.has_singleton(&"GDShedor"):
 		for _settings in Engine.get_main_loop().get_nodes_in_group(&"GDShedor"):
@@ -531,6 +535,62 @@ func _parse_script(path : String) -> void:
 	_Logger.write("\nAbstract Syntax Tree\n" + obfuscator._ast.print_tree(-1))
 	
 	_Logger.write("\n---------- " + " Resolving symbols " + path + " ----------\n")
+
+
+# Locks every declared name that appears as a word in a script's string literal, in a word file or
+# in a quoted string of a quoted file, and writes the sorted names next to the source map.
+# Returns how many distinct names it locked.
+func _lock_string_referenced_symbols() -> int:
+	var word_rgx : RegEx = RegEx.create_from_string("(?<![A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*")
+	var quoted_rgx : RegEx = RegEx.create_from_string(r'"((?:\\.|[^"\\])*)"')
+	var words : Dictionary = {}
+	
+	for path : String in _src_obfuscators:
+		var tokenizer : Tokenizer = _src_obfuscators[path].tokenizer
+		tokenizer.reset()
+		var token : Token = tokenizer.get_next()
+		while token:
+			if token.type == Token.Type.STRING_LITERAL or token.type == Token.Type.STRING_MULTI_LINE:
+				_add_words(token.get_value(false), word_rgx, words)
+			token = tokenizer.get_next()
+		tokenizer.reset()
+	
+	for ext : String in _split_extensions(settings.string_reference_word_extensions):
+		for path : String in _get_files("res://", "." + ext):
+			_add_words(FileAccess.get_file_as_string(path), word_rgx, words)
+	
+	for ext : String in _split_extensions(settings.string_reference_quoted_extensions):
+		for path : String in _get_files("res://", "." + ext):
+			for quoted : RegExMatch in quoted_rgx.search_all(FileAccess.get_file_as_string(path)):
+				_add_words(quoted.get_string(1), word_rgx, words)
+	
+	var locked : PackedStringArray = []
+	for word : String in words:
+		if _symbols.find_global_symbol(word):
+			_symbols.lock_symbol_name(word)
+			locked.append(word)
+	locked.sort()
+	
+	_build_data_path(settings.source_map_path)
+	var report_path : String = settings.source_map_path.path_join(_source_map_filename.get_basename() + ".string_locks.txt")
+	if !_write_file_str(report_path, "\n".join(locked) + "\n"):
+		push_warning("GDMaim - Failed to write the string lock report to '" + report_path + "'!")
+	
+	return locked.size()
+
+
+static func _add_words(text : String, word_rgx : RegEx, words : Dictionary) -> void:
+	for word : RegExMatch in word_rgx.search_all(text):
+		words[word.get_string()] = true
+
+
+static func _split_extensions(list : String) -> PackedStringArray:
+	var extensions : PackedStringArray = []
+	for ext : String in list.split(",", false):
+		ext = ext.strip_edges().trim_prefix(".")
+		if !ext.is_empty():
+			extensions.append(ext)
+	return extensions
 
 
 func _obfuscate_script(path : String) -> String:

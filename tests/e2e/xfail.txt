@@ -1,13 +1,3 @@
 # Check ids that must FAIL in the obfuscated build. One id per line; '#' starts a comment.
 # The plain build must pass every check. A listed id that passes is an XPASS error: the fix
 # that makes it pass deletes its line here.
-
-# phase 4
-has_method_literal
-call_literal
-callable_literal
-get_set_literal
-connect_literal
-dialogue_reference
-json_reference
-tscn_reference
