@@ -32,7 +32,14 @@ export templates. It exits 0 when clean, 1 on check failures and 2 on a harness 
 
 ### Changed defaults
 
-*None yet.*
+A project that already has a `res://.gdmaim/export.cfg` keeps the values stored there; the default
+changes below reach only fresh configs.
+
+- `shuffle_top_level` is off, because member initializers can depend on declaration order.
+- `obfuscate_export_vars` is off, because saves and other data are keyed by exported names.
+- `@export` annotations are never stripped, even with `strip_editor_annotations` on. Without them,
+  the fields drop out of `duplicate()` and `ResourceSaver`.
+- CSVs imported with `importer="keep"` are exported, because the game reads them raw at runtime.
 
 ## Related Post Topic
 > [!NOTE]

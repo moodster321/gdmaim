@@ -2,13 +2,6 @@
 # The plain build must pass every check. A listed id that passes is an XPASS error: the fix
 # that makes it pass deletes its line here.
 
-# phase 2
-export_duplicate
-export_save_roundtrip
-legacy_save_load
-keep_csv_exported
-init_order
-
 # phase 3
 class_identity
 script_extends_class

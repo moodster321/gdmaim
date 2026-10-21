@@ -362,6 +362,10 @@ func _export_file(path : String, type : String, features : PackedStringArray) ->
 	
 	var ext : String = path.get_extension()
 	if ext == "csv":
+		# A CSV imported with "Keep File" is read raw at runtime, so Godot must export it
+		var import_cfg := ConfigFile.new()
+		if import_cfg.load(path + ".import") == OK and import_cfg.get_value("remap", "importer", "") == "keep":
+			return
 		skip() #HACK
 	elif ext == "ico":
 		skip() #HACK
