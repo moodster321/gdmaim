@@ -41,6 +41,16 @@ changes below reach only fresh configs.
   the fields drop out of `duplicate()` and `ResourceSaver`.
 - CSVs imported with `importer="keep"` are exported, because the game reads them raw at runtime.
 - `lock_class_names` (new, on): class names are never renamed.
+- `lock_string_referenced_symbols` (new, on): a declared name keeps its real name when it appears
+  as a word in a string literal of any script (`"x"`, `&"x"`, `^"x"`, including scripts embedded in
+  scenes), anywhere in a file listed in `string_reference_word_extensions` (default `dialogue`), or
+  inside a quoted string of a file listed in `string_reference_quoted_extensions` (default
+  `json,tscn,tres,cfg`). So `call`, `has_method`, `get`, `set`, `connect` and `Callable` by name keep
+  working. A string is split into words at every character that can't be part of an identifier, so
+  `"Story.set_flag"` keeps both `Story` and `set_flag`. Names built at runtime are **not** detected:
+  `"_on_" + x`, `"%s_changed" % f`, or a method name stored in a variable. Each export lists the
+  names it kept, sorted, in a `*.string_locks.txt` file next to its source map in `source_maps/`,
+  so the lock can be audited.
 
 ## Related Post Topic
 > [!NOTE]

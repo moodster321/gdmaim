@@ -20,6 +20,10 @@ string in a `.tres`. Once it lands, all three class names are locked by those li
 went empty), all three checks would still pass. With phase 3 alone, flipping the default off fails
 all three (see the phase 3 PR).
 
+Confirmed in phase 4: the fixture's `*.string_locks.txt` lists `E2EBase`, `E2EChain` and
+`E2EItem` (plus `E2EHolder`, `E2EStory` and `E2ETarget`, which other strings name), so the
+masking is now live.
+
 ## Options
 
 1. **Build the expected names at runtime**, the way `obfuscation_active` does, so no literal
