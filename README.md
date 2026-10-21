@@ -8,6 +8,32 @@ A plugin for the [Godot Engine] which obfuscates all GDScripts when exporting a 
 [![Godot Engine 4.3](https://img.shields.io/badge/Godot_Engine-4.x-blue)](https://godotengine.org/)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE.md)
 
+## About this fork (moodster321)
+
+This is a fork of [cherriesandmochi/gdmaim](https://github.com/cherriesandmochi/gdmaim), maintained
+for SEVER // ctrl, a large Godot 4.7.1 game. The game needs an obfuscated export to behave exactly
+like a plain one: no lost data, and no broken lookups by name. So this fork changes upstream
+defaults to what is safe for that game. It may drift from upstream behaviour, and it is not kept
+upstreamable.
+
+Each of those guarantees is pinned by an end-to-end export test:
+
+```bash
+python tests/run_e2e.py
+```
+
+The runner copies `tests/e2e/fixture/` and the addon to a temp dir and exports the fixture twice:
+obfuscated, and with GDMaim turned off by the `no_gdmaim` feature. It runs both PCKs headless and
+compares what the fixture's checks report. The plain build must pass every check. Checks listed in
+`tests/e2e/xfail.txt` are known to fail in the obfuscated build; the rest must pass there too. It
+needs Python 3 and Godot 4.7.1 (`$GODOT_BIN`, else `$GODOT_PATH`, else `godot` on `PATH`), but no
+export templates. It exits 0 when clean, 1 on check failures and 2 on a harness error. Set
+`E2E_VERBOSE=1` to see the Godot logs. CI runs it on every pull request.
+
+### Changed defaults
+
+*None yet.*
+
 ## Related Post Topic
 > [!NOTE]
 > It may contain spelling errors and misunderstandings.
@@ -19,6 +45,8 @@ A plugin for the [Godot Engine] which obfuscates all GDScripts when exporting a 
 
 ## Table of contents
 
+- [About this fork (moodster321)](#about-this-fork-moodster321)
+	- [Changed defaults](#changed-defaults)
 - [Why does this exist?](#why-does-this-exist)
 	- [Vulnerability of GDScripts](#vulnerability-of-gdscripts)
 	- [Obfuscation](#obfuscation)
