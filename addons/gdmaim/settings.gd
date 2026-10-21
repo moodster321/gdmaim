@@ -11,10 +11,10 @@ enum ExportMode {
 }
 
 var obfuscation_enabled : bool = true
-var shuffle_top_level : bool = true
+var shuffle_top_level : bool = false
 var inline_constants : bool = true
 var inline_enums : bool = true
-var obfuscate_export_vars : bool = true
+var obfuscate_export_vars : bool = false
 var obfuscate_signals : bool = true
 var symbol_target_length : int = 30
 var symbol_prefix : String = "__"
@@ -92,9 +92,9 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	
 	set_category("obfuscator", "Obfuscation")
 	add_entry("obfuscation_enabled", "enabled", "Enable Obfuscation", "If false, skip obfuscation entirely, but still allow post-processing to take place.")
-	add_entry("obfuscate_export_vars", "export_vars", "Obfuscate Export Vars", "If true, obfuscate export variables.\nNote: Requires scenes and resources which modify custom export vars to be saved as '*.tscn' and '*.tres', respectively.")
+	add_entry("obfuscate_export_vars", "export_vars", "Obfuscate Export Vars", "If true, obfuscate export variables.\nNote: Requires scenes and resources which modify custom export vars to be saved as '*.tscn' and '*.tres', respectively.\nFork default: off, because saves and other data are keyed by exported names.")
 	#add_entry("obfuscate_signals", "signals", "Obfuscate Signals", "If true, obfuscate signals.")
-	add_entry("shuffle_top_level", "shuffle_top_level", "Shuffle Top-Level Declarations", "If true, shuffles all top-level declarations of variables, functions, signals, etc.")
+	add_entry("shuffle_top_level", "shuffle_top_level", "Shuffle Top-Level Declarations", "If true, shuffles all top-level declarations of variables, functions, signals, etc.\nFork default: off, because member initializers can depend on declaration order.")
 	add_entry("inline_constants", "inline_consts", "Inline Constants", "If true, replace constants with hardcoded values.\nNote: Only bool, int, float, Color, Vector(2/3/4)(i) and NodePath are supported.").disabled = true
 	add_entry("inline_enums", "inline_enums", "Inline Enums", "If true, replace enums with hardcoded values.").disabled = true
 	add_entry("preprocessor_prefix", "preprocessor_prefix", "Preprocessor Prefix", "Sets the prefix to use for preprocessor hints.")
@@ -103,7 +103,7 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	add_entry("strip_comments", "strip_comments", "Strip Comments", "If true, remove all comments.")
 	add_entry("strip_empty_lines", "strip_empty_lines", "Strip Empty Lines", "If true, remove all empty lines.")
 	add_entry("strip_extraneous_spacing", "strip_extraneous_spacing", "Strip Extraneous Spacing", "If true, remove all irrelevant spaces and tabs.")
-	add_entry("strip_editor_annotations", "strip_editor_annotations", "Strip Editor Annotations", "If true, remove all annotations used by the editor.")
+	add_entry("strip_editor_annotations", "strip_editor_annotations", "Strip Editor Annotations", "If true, remove all annotations used by the editor.\n@export annotations are always kept, because removing them drops the fields from duplicate() and ResourceSaver.")
 	add_entry("strip_static_typing", "strip_static_typing", "Strip Static Typing", "If true, remove all static typing like [int, String, Objects, CustomObjects, ...] take in mind this can remove the performance benefit with the static typing practice.")
 	add_entry("strip_sequential_newlines", "strip_sequential_newlines", "Strip Sequential New Lines","Strip New Lines Whenever Possible On Sequential Syntax")
 	add_entry("striped_static_typing_be_initialized", "striped_static_typing_be_initialized", "Initialize stripped typed variables", "(This action is complement of: Strip Static Typing)\nIf true, uninitalized typed variables that typed have been removed will be initialized; this will be useful for developers who frequently perform operations with these uninitialized typed variables, avoiding type definition errors.")
