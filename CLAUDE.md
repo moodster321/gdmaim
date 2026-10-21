@@ -22,6 +22,31 @@ safe for that game and is **not** kept upstreamable. The addon code lives in `ad
   surrounding code has them.
 - **Comments carry no PR numbers.** Prefer the fix that makes a bad case impossible over a guard
   around the symptom.
+- **Why the defaults differ from upstream:** `docs/fork-decisions.md`. Deferred work:
+  `plans/followup-index.md`.
+
+## Export pipeline invariants
+
+- **Where locks go.** `_export_begin` (`export_plugin.gd`) runs in this order: it locks the
+  builtins, the custom tokens and every ClassDB name; parses every `.gd`/`.tscn`/`.scn`; applies
+  `lock_class_names`, then `lock_string_referenced_symbols`; then calls `resolve_symbol_paths()`
+  and `obfuscate_symbols()`. **A new lock must run after the parse loop and before
+  `resolve_symbol_paths()`.**
+- **Names, not symbols.** Class-body names are global and keyed by name alone
+  (`symbol_table.gd`). `lock_symbol_name` keeps a name for every global *and* local that shares
+  it.
+- **String tokens.** Strings tokenize as `STRING_LITERAL`/`STRING_MULTI_LINE` without their
+  quotes, and `&"x"` is the operator `&` followed by the literal. To walk a parsed script's
+  tokens: `tokenizer.reset()`, then `get_next()` until null, then `reset()` again (as
+  `check_exclusion_source` does).
+- **Settings.** Defaults are the var initializers in `settings.gd`, each registered with
+  `add_entry`. A stored `res://.gdmaim/export.cfg` overrides them, which is why the fixture must
+  never carry one (`.gitignore` blocks `tests/**/.gdmaim/`).
+- **Export and run facts the tests rely on:**
+  - `--export-pack` needs no export templates.
+  - `godot --headless --main-pack x.pck` runs a PCK with the editor binary.
+  - A preset with `custom_features="no_gdmaim"` exports with GDMaim off.
+  - A text `.tres` with a wrong `script_class=` header still loads, binding by script path.
 
 ## Tests
 
@@ -72,4 +97,9 @@ Traps:
 `plans/` holds a workstream's overview, phase briefs and `*-stack.json` while it is in flight.
 `/workstream-phase` (in `.claude/skills/`) executes one brief. A `/workstream-run` coordinator in
 the SEVER repo drives the stack, running `tools/orchestrate.py` with its cwd set to this checkout.
-The plans are deleted when the workstream closes out.
+When a workstream closes out:
+
+1. Its invariants move here.
+2. Its rationale moves to `docs/`.
+3. Every leftover becomes a row in `plans/followup-index.md`.
+4. Its overview, briefs and stack file are deleted.
