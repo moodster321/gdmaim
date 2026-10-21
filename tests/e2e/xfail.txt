@@ -2,10 +2,6 @@
 # The plain build must pass every check. A listed id that passes is an XPASS error: the fix
 # that makes it pass deletes its line here.
 
-# phase 3
-class_identity
-script_extends_class
-
 # phase 4
 has_method_literal
 call_literal

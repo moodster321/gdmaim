@@ -40,6 +40,7 @@ changes below reach only fresh configs.
 - `@export` annotations are never stripped, even with `strip_editor_annotations` on. Without them,
   the fields drop out of `duplicate()` and `ResourceSaver`.
 - CSVs imported with `importer="keep"` are exported, because the game reads them raw at runtime.
+- `lock_class_names` (new, on): class names are never renamed.
 
 ## Related Post Topic
 > [!NOTE]

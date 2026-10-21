@@ -15,6 +15,7 @@ var shuffle_top_level : bool = false
 var inline_constants : bool = true
 var inline_enums : bool = true
 var obfuscate_export_vars : bool = false
+var lock_class_names : bool = true
 var obfuscate_signals : bool = true
 var symbol_target_length : int = 30
 var symbol_prefix : String = "__"
@@ -93,6 +94,7 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	set_category("obfuscator", "Obfuscation")
 	add_entry("obfuscation_enabled", "enabled", "Enable Obfuscation", "If false, skip obfuscation entirely, but still allow post-processing to take place.")
 	add_entry("obfuscate_export_vars", "export_vars", "Obfuscate Export Vars", "If true, obfuscate export variables.\nNote: Requires scenes and resources which modify custom export vars to be saved as '*.tscn' and '*.tres', respectively.\nFork default: off, because saves and other data are keyed by exported names.")
+	add_entry("lock_class_names", "lock_class_names", "Keep Class Names", "If true, class_name declarations keep their names, so get_global_name(), script_class headers and string-based class checks still match. Fork default: on.")
 	#add_entry("obfuscate_signals", "signals", "Obfuscate Signals", "If true, obfuscate signals.")
 	add_entry("shuffle_top_level", "shuffle_top_level", "Shuffle Top-Level Declarations", "If true, shuffles all top-level declarations of variables, functions, signals, etc.\nFork default: off, because member initializers can depend on declaration order.")
 	add_entry("inline_constants", "inline_consts", "Inline Constants", "If true, replace constants with hardcoded values.\nNote: Only bool, int, float, Color, Vector(2/3/4)(i) and NodePath are supported.").disabled = true
