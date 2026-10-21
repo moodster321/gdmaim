@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://lib/e2e_holder.gd" id="1_holder"]
+
+[node name="Holder" type="Node"]
+script = ExtResource("1_holder")
+e2e_callback_name = "e2e_tscn_target"

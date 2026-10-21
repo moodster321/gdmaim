@@ -10,3 +10,11 @@ test_scripts/
 *.uid
 # Claude Code worktrees (one per workstream phase)
 .claude/worktrees/
+
+# End-to-end fixture: re-include the project files the rules above hide. Its editor state and
+# GDMaim settings stay ignored, so the tests always see the addon's defaults.
+!tests/**/project.godot
+!tests/**/export_presets.cfg
+!tests/**/*.import
+!tests/**/*.txt
+tests/**/.gdmaim/
